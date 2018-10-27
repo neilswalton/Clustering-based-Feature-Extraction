@@ -13,6 +13,10 @@ from abc import ABC, abstractmethod
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.model_selection import StratifiedKFold
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import Adam
+from keras.utils import to_categorical
 from matplotlib import pyplot as plt
 
 class Classifier(ABC):
@@ -177,6 +181,83 @@ class NaiveBayes(Classifier):
         else:
             return self.model.score(in_, out)
 
+class FFNN(Classifier):
+    '''
+    The feedforward neural network class. User specifies the
+    number of layers and hidden units per layer, relu activation
+    function, adam optimizer, and softmax classifier
+    '''
+
+    def __init__(self, input, labels, layers=[10,10], dropout=0.0):
+        super().__init__(input, labels)
+        self.layers = layers
+        self.dropout = dropout
+        self.num_classes = len(set(self.labels))
+        self.model = self._create_network()
+
+    def _create_network(self):
+        '''
+        Given the number of layers and number of hidden nodes per
+        layer (specified in self.layers), as well as the dropout
+        rate, create the neural network
+        '''
+
+        if len(self.layers) == 0:
+            raise ValueError('Must specify at least one hidden layer for FFNN '+
+                '(layers list cannot be empty).')
+
+        if self.dropout < 0.0 or self.dropout > 1.0:
+            raise ValueError('Dropout rate must be between 0 and 1.')
+
+        #Create the model and add the first layer
+        model = Sequential()
+        model.add(Dense(self.layers[0], activation='relu', input_dim=len(self.input[0])))
+        if self.dropout != 0.0:
+            model.add(Dropout(self.dropout))
+
+        #Add any additional hidden layers
+        for i in range(1, len(layers)):
+            model.add(Dense(layers[i], activation='relu'))
+            if self.dropout != 0.0:
+                model.add(Dropout(self.dropout))
+
+        #Create the softmax classifier with one node per class label
+        model.add(Dense(self.num_classes, activation='softmax'))
+
+        return model
+
+    def fit(self, in_, out):
+        '''
+        Train the neural network on the specified data using
+        the adam optimizer
+        '''
+
+        #Reset the model in between runs
+        self.model = self._create_network()
+        cat_out = to_categorical(out, num_classes=self.num_classes)
+        adam = Adam(lr = 0.001, beta_1 = 0.9, beta_2 = 0.999)
+
+        self.model.compile(loss='categorical_crossentropy',
+                      optimizer=adam,
+                      metrics=['accuracy'])
+
+        #Set verbose=0 for no output during training, 2 for one line per epoch
+        #Need to adjust steps_per_epoch depending on the dataset
+        self.model.fit(in_, cat_out, epochs=20, verbose=2, steps_per_epoch=200)
+        self.fit_yet = True
+
+    def score(self, in_, out):
+        '''
+        Score the neural network on the provided input
+        '''
+
+        if not self.fit_yet:
+            raise ModelNotFit('Must train the neural network before scoring.')
+
+        else:
+            cat_out = to_categorical(out, num_classes=self.num_classes)
+            return self.model.evaluate(in_, cat_out, batch_size=128)[1]
+
 class ModelNotFit(Exception):
     def __init__(self, message):
         self.message = message
@@ -211,7 +292,9 @@ if __name__ == '__main__':
     iris = load_iris()
     in_ = iris[0]
     out = iris[1]
-    k = NaiveBayes(in_, out)
+    layers = [3,3]
+    drop = 0.0
+    k = FFNN(in_, out, layers, drop)
 
     score, stdev, scores = k.k_fold_score()
 
