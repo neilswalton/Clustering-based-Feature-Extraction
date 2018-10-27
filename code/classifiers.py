@@ -11,6 +11,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.model_selection import StratifiedKFold
 from matplotlib import pyplot as plt
 
@@ -131,7 +132,56 @@ class Knn(Classifier):
         #Reset the model to the original value of k
         self.model = KNeighborsClassifier(n_neighbors=self.k)
 
+class NaiveBayes(Classifier):
+    '''
+    The Naive Bayes classifier. Both the Gaussian and
+    multinomial implementations are provided as options
+    (mode='gaussian' and mode='multinomial')
+    '''
+
+    def __init__(self, input, labels, method='gaussian'):
+        super().__init__(input, labels)
+        self.method = method
+        self.model = self._get_model()
+
+    def _get_model(self):
+        '''
+        Create the Naive Bayes model specified by the
+        method parameter
+        '''
+
+        if self.method == 'gaussian':
+            return GaussianNB()
+        elif self.method == 'multinomial':
+            return MultinomialNB()
+        else:
+            raise NaiveBayesNotDefined('Naive Bayes method \'' +self.method+
+                '\' does not exist.')
+
+    def fit(self, in_, out):
+        '''
+        Fit the naive bayes model to the specified data_matrix
+        '''
+
+        self.model.fit(in_, out)
+        self.fit_yet = True
+
+    def score(self, in_, out):
+        '''
+        Score the model on the provided input
+        '''
+
+        if not self.fit_yet:
+            raise ModelNotFit('Must fit the Naive Bayes model before scoring.')
+
+        else:
+            return self.model.score(in_, out)
+
 class ModelNotFit(Exception):
+    def __init__(self, message):
+        self.message = message
+
+class NaiveBayesNotDefined(Exception):
     def __init__(self, message):
         self.message = message
 
@@ -161,12 +211,10 @@ if __name__ == '__main__':
     iris = load_iris()
     in_ = iris[0]
     out = iris[1]
-    k = Knn(in_, out, 1)
+    k = NaiveBayes(in_, out)
 
     score, stdev, scores = k.k_fold_score()
 
     print(score)
     print(stdev)
     print(scores)
-
-    k.plot_k_scores(10)
