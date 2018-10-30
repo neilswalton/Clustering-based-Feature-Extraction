@@ -27,6 +27,7 @@ class DataReader:
 		self.label_encoder_ = []
 		self.labels=[]
 		self.features=[]
+		self.class_column = -1
 
 	"""
 	Reading in data, checking if there are headers, if not, add column names.
@@ -58,10 +59,14 @@ class DataReader:
 		self.data = data.values
 
 	"""
-
+	Make sure each class has at least 10 instances for stratified 10-fold CV.
 	"""
 	def check_class_instances(self):
-		print(self.data.groupby(self.headers[-1]).nunique())
+		unique, counts = np.unique(self.data[:,self.class_column], return_counts=True)
+		for i,c in enumerate(counts):
+			if c < 10:
+				value = unique[i]
+				self.data = np.asarray([row for row in self.data if row[-1] != value])
 
 
 	"""
@@ -107,7 +112,7 @@ class DataReader:
 	"""
 	def split_feat_labels(self, class_column):
 		self.labels = self.data[:, class_column]
-		self.features = np.delete(self.data, class_column, 1)
+		self.features = np.delete(self.data, class_column, axis=1)
 
 	"""
 	Function to run all other datareader functionality.
@@ -117,17 +122,17 @@ class DataReader:
 	bool_shuffled: boolean to tell if data needs to be shuffled
 	"""
 	def run(self, class_column=-1, bool_scale=False, bool_shuffled=False):
+		self.class_column = class_column
 		self.read_file()
 		self.check_class_instances()
 		if bool_shuffled:
 			np.random.shuffle(self.data)
-		self.split_feat_labels(class_column)
+		self.split_feat_labels(self.class_column)
 		self.categorical_to_num()
 		if bool_scale:
 			self.features = preprocessing.scale(self.features)
 		return self.features, self.labels
-		
+
 if __name__ == '__main__':
 	dr = DataReader("../data/nursery.csv")
 	print(dr.run())
-	print(dr.num_to_category())
