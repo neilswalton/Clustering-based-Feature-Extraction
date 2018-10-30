@@ -49,13 +49,20 @@ class DataReader:
 
 		if not header_:
 			if self.datafile.contains("cov"):
-				data = pd.read_csv(self.datafile, header=None, names=cover_headers)
+				data = pd.read_csv(self.datafile, names=cover_headers)
 			if self.datafile.contains("nurse"):
-				data = pd.read_csv(self.datafile, header=None, names=nursery_headers)
+				data = pd.read_csv(self.datafile, names=nursery_headers)
 		else:
 			data = pd.read_csv(self.datafile)
 		self.headers = data.columns.values
 		self.data = data.values
+
+	"""
+
+	"""
+	def check_class_instances(self):
+		print(self.data.groupby(self.headers[-1]).nunique())
+
 
 	"""
 	Check if any feature columns or labels are non-numerical, if so, convert to numbers.
@@ -111,6 +118,7 @@ class DataReader:
 	"""
 	def run(self, class_column=-1, bool_scale=False, bool_shuffled=False):
 		self.read_file()
+		self.check_class_instances()
 		if bool_shuffled:
 			np.random.shuffle(self.data)
 		self.split_feat_labels(class_column)
@@ -118,6 +126,7 @@ class DataReader:
 		if bool_scale:
 			self.features = preprocessing.scale(self.features)
 		return self.features, self.labels
+
 
 dr = DataReader("../data/nursery.csv")
 print(dr.run())
