@@ -30,18 +30,18 @@ class DataReader:
 
 	"""
 	Reading in data, checking if there are headers, if not, add column names.
-	Set data and headers for DataReader object. 
+	Set data and headers for DataReader object.
 	"""
 	def read_file(self):
 		sniff = csv.Sniffer()
 		sample_bytes = 64
 		header_ = sniff.has_header(open(self.datafile).read(sample_bytes))
 
-		cover_headers = ["elevation", "aspect", "slope", "horizontal_distance_hydrology", "vertical_distance_hydrology", 
-			"horizontal_distance_roadways", "hillshade_9am", "hillshade_noon", "hillshade_3pm", "wilderness_rawah", 
-			"wilderness_neota", "wilderness_comanche", "wilderness_cache", "ELU_2702", "ELU_2703", "ELU_2704", "ELU_2705", 
+		cover_headers = ["elevation", "aspect", "slope", "horizontal_distance_hydrology", "vertical_distance_hydrology",
+			"horizontal_distance_roadways", "hillshade_9am", "hillshade_noon", "hillshade_3pm", "wilderness_rawah",
+			"wilderness_neota", "wilderness_comanche", "wilderness_cache", "ELU_2702", "ELU_2703", "ELU_2704", "ELU_2705",
 			"ELU_2706", "ELU_2717", "ELU_3501", "ELU_3502", "ELU_4201", "ELU_4703", "ELU_4704", "ELU_4744", "ELU_4758",
-			"ELU_5101", "ELU_5151", "ELU_6101", "ELU_6102", "ELU_6731", "ELU_7101", "ELU_7102", "ELU_7103", "ELU_7201", 
+			"ELU_5101", "ELU_5151", "ELU_6101", "ELU_6102", "ELU_6731", "ELU_7101", "ELU_7102", "ELU_7103", "ELU_7201",
 			"ELU_7202", "ELU_7709", "ELU_7710", "ELU_7745", "ELU_7746", "ELU_7755", "ELU_7756", "ELU_7757", "ELU_7790",
 			"ELU_8703", "ELU_8707", "ELU_8708", "ELU_8771", "ELU_8772", "ELU_8876", "cover_class"]
 
@@ -110,7 +110,7 @@ class DataReader:
 		self.features = np.delete(self.data, class_column, 1)
 
 	"""
-	Function to run all other datareader functionality. 
+	Function to run all other datareader functionality.
 	Parameters:
 	class_column: which column to use for classification goal (-1 if last column)
 	bool_scale: boolean to tell if data needs to be scaled
@@ -126,8 +126,8 @@ class DataReader:
 		if bool_scale:
 			self.features = preprocessing.scale(self.features)
 		return self.features, self.labels
-
-
-dr = DataReader("../data/nursery.csv")
-print(dr.run())
-print(dr.num_to_category())
+		
+if __name__ == '__main__':
+	dr = DataReader("../data/nursery.csv")
+	print(dr.run())
+	print(dr.num_to_category())
