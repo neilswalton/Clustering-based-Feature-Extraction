@@ -235,7 +235,7 @@ class FFNN(Classifier):
         #Reset the model in between runs
         self.model = self._create_network()
         cat_out = to_categorical(out, num_classes=self.num_classes)
-        adam = Adam(lr = 0.001, beta_1 = 0.9, beta_2 = 0.999)
+        adam = Adam(lr = 0.01, beta_1 = 0.9, beta_2 = 0.999)
 
         self.model.compile(loss='categorical_crossentropy',
                       optimizer=adam,
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     iris = load_iris()
     in_ = iris[0]
     out = iris[1]
-    layers = [3,3]
+    layers = [4]
     drop = 0.0
     k = FFNN(in_, out, layers, drop)
 
