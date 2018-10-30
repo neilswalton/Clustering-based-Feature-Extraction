@@ -216,8 +216,8 @@ class FFNN(Classifier):
             model.add(Dropout(self.dropout))
 
         #Add any additional hidden layers
-        for i in range(1, len(layers)):
-            model.add(Dense(layers[i], activation='relu'))
+        for i in range(1, len(self.layers)):
+            model.add(Dense(self.layers[i], activation='relu'))
             if self.dropout != 0.0:
                 model.add(Dropout(self.dropout))
 
