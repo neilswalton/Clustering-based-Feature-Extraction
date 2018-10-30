@@ -1,4 +1,4 @@
-# Clustering-based-Feature-Selection
+# Clustering-based-Feature-Extraction
 Using various clustering techniques to extract features in order to reduce the dimensionality of a given dataset.
 
 Authors: Amy Peerlinck and Neil Walton
