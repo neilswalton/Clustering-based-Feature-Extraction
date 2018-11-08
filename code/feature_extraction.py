@@ -10,6 +10,7 @@
 
 from abc import ABC, abstractmethod
 import numpy as np
+from clustering import Kmeans, Bicluster, Dbscan
 
 class FeatureExtractor(ABC):
     '''
@@ -68,8 +69,23 @@ class ClusterPCA(FeatureExtractor):
     Implementation of the cluster pca feature extractor
     '''
 
-    def __init__(self, input, labels):
+    def __init__(self, input, labels, method='kmeans'):
         super().__init__(input, labels)
+        self.method = method
+        self.clustering = self._get_clustering()
+
+    def _get_clustering(self):
+        '''
+        Return the selected clustering method. Vald methods
+        are "kmeans" and "dbscan"
+        '''
+
+        if self.method == 'kmeans':
+            return Kmeans(self.input, k=3)
+        elif self.method == 'dbscan':
+            return Dbscan(self.input, min_points=4, e=0.5)
+        else:
+            raise CantClusterLikeThat('Invalid clustering method selected.')
 
     def extract_features(self):
         '''
@@ -78,7 +94,12 @@ class ClusterPCA(FeatureExtractor):
         Valid clustering techniques include DBSCAN and kmeans
         '''
 
-        pass
+        clusters = self.clustering.assign_clusters()
+        return clusters
+
+class CantClusterLikeThat(Exception):
+    def __init__(self, message):
+        self.message = message
 
 def load_iris():
     path = '../data/iris.txt'
@@ -107,5 +128,5 @@ if __name__ == '__main__':
 
     bc = BiclusterExtractor(in_, out)
     fc = FeatureCluster(in_, out)
-    cpca = ClusterPCA(in_, out)
-    print (bc.extract_features())
+    cpca = ClusterPCA(in_, out, method='c')
+    print (cpca.extract_features())
