@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
 from utils import Pca
-from classifiers import Knn
+from classifiers import Knn, NaiveBayes
 
 class FeatureExtractor(ABC):
     '''
@@ -151,8 +151,20 @@ if __name__ == '__main__':
     feats = cpca.extract_features()
     #print (feats)
 
+    p = Pca(in_, n=2)
+    pca_feats = p.get_components()
+
     k=8
     knn1 = Knn(in_, out, k=k)
     knn2 = Knn(feats, out, k=k)
-    print ('Score with original features: ', knn1.k_fold_score()[0])
-    print ('Score with extracted features: ', knn2.k_fold_score()[0])
+    knn3 = Knn(pca_feats, out, k=k)
+    print ('Knn score with original features: ', knn1.k_fold_score()[0])
+    print ('Knn score with extracted features: ', knn2.k_fold_score()[0])
+    print ('Knn score with PCA features: ', knn3.k_fold_score()[0])
+
+    nb1 = NaiveBayes(in_, out)
+    nb2 = NaiveBayes(feats, out)
+    nb3 = NaiveBayes(pca_feats, out)
+    print ('Naive Bayes score with original features: ', nb1.k_fold_score()[0])
+    print ('Naive Bayes score with extracted features: ', nb2.k_fold_score()[0])
+    print ('Naive Bayes score with PCA features: ', nb3.k_fold_score()[0])
