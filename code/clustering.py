@@ -33,7 +33,7 @@ class Cluster(ABC):
 
         pass
 
-class kmeans(Cluster):
+class Kmeans(Cluster):
     '''
     Implementation of the k-means clustering algorithm using
     the scikit learn implementation
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     in_ = iris[0]
     out = iris[1]
 
-    k = kmeans(in_, k=3)
+    k = Kmeans(in_, k=3)
     d = Dbscan(in_, min_points=4, e=.5)
     b = Bicluster(in_)
     clusts = d.assign_clusters()
