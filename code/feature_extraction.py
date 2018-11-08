@@ -11,6 +11,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
+from utils import Pca
 
 class FeatureExtractor(ABC):
     '''
@@ -81,11 +82,11 @@ class ClusterPCA(FeatureExtractor):
         '''
 
         if self.method == 'kmeans':
-            return Kmeans(self.input, k=3)
+            return Kmeans(self.input.T, k=2)
         elif self.method == 'dbscan':
-            return Dbscan(self.input, min_points=4, e=0.5)
+            return Dbscan(self.input.T, min_points=4, e=0.5)
         else:
-            raise CantClusterLikeThat('Invalid clustering method selected.')
+            raise CantClusterLikeThat('Invalid clustering method selected "' +self.method+ '".')
 
     def extract_features(self):
         '''
@@ -94,8 +95,26 @@ class ClusterPCA(FeatureExtractor):
         Valid clustering techniques include DBSCAN and kmeans
         '''
 
+        features = self.input.T #Transpose so we're clustering features
         clusters = self.clustering.assign_clusters()
-        return clusters
+        new_features = np.array([])
+        print(new_features.shape)
+
+        #For each cluster, run PCA on the columns in the cluster to reduce dimension
+        for c in set(clusters):
+            columns = []
+            for i in range(len(clusters)):
+                if clusters[i] == c:
+                    columns.append(features[i])
+            columns =  np.array(columns).T
+            p = Pca(columns, n=0.5)
+            extracted_features = p.get_components()
+            if new_features.shape[0] == 0:
+                new_features = extracted_features
+            else:
+                new_features = np.hstack((new_features, extracted_features))
+
+        return new_features
 
 class CantClusterLikeThat(Exception):
     def __init__(self, message):
@@ -128,5 +147,6 @@ if __name__ == '__main__':
 
     bc = BiclusterExtractor(in_, out)
     fc = FeatureCluster(in_, out)
-    cpca = ClusterPCA(in_, out, method='c')
-    print (cpca.extract_features())
+    cpca = ClusterPCA(in_, out, method='kmeans')
+    feats = cpca.extract_features()
+    #print (feats)
