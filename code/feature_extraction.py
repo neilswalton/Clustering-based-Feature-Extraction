@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
 from utils import Pca
+from classifiers import Knn
 
 class FeatureExtractor(ABC):
     '''
@@ -98,7 +99,6 @@ class ClusterPCA(FeatureExtractor):
         features = self.input.T #Transpose so we're clustering features
         clusters = self.clustering.assign_clusters()
         new_features = np.array([])
-        print(new_features.shape)
 
         #For each cluster, run PCA on the columns in the cluster to reduce dimension
         for c in set(clusters):
@@ -107,7 +107,7 @@ class ClusterPCA(FeatureExtractor):
                 if clusters[i] == c:
                     columns.append(features[i])
             columns =  np.array(columns).T
-            p = Pca(columns, n=0.5)
+            p = Pca(columns, n=1)
             extracted_features = p.get_components()
             if new_features.shape[0] == 0:
                 new_features = extracted_features
@@ -150,3 +150,9 @@ if __name__ == '__main__':
     cpca = ClusterPCA(in_, out, method='kmeans')
     feats = cpca.extract_features()
     #print (feats)
+
+    k=8
+    knn1 = Knn(in_, out, k=k)
+    knn2 = Knn(feats, out, k=k)
+    print ('Score with original features: ', knn1.k_fold_score()[0])
+    print ('Score with extracted features: ', knn2.k_fold_score()[0])
