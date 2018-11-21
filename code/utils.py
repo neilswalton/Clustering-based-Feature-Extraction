@@ -10,6 +10,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
 from math import ceil
+from sklearn.metrics import silhouette_score as sc
 
 class Pca:
     '''
@@ -37,6 +38,7 @@ class Pca:
         else:
             n = self.n
 
+        n = min(n, len(self.data.T)) #Can't have fewer components than features
         return PCA(n_components=n).fit(self.data)
 
     def get_components(self):
