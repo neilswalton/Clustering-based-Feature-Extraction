@@ -11,7 +11,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
-from utils import Pca
+from utils import Pca, silhouette
 from classifiers import Knn, NaiveBayes
 from matplotlib import pyplot as plt
 
@@ -102,6 +102,8 @@ class ClusterPCA(FeatureExtractor):
         features = self.input.T #Transpose so we're clustering features
         clusters = self.clustering.assign_clusters()
         new_features = np.array([])
+
+        sc = silhouette(features, clusters) #silhouette coefficient
 
         #For each cluster, run PCA on the columns in the cluster to reduce dimension
         for c in set(clusters):

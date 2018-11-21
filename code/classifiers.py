@@ -18,6 +18,7 @@ from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 from matplotlib import pyplot as plt
+from utils import f_score
 
 class Classifier(ABC):
     '''
@@ -42,7 +43,7 @@ class Classifier(ABC):
         pass
 
     @abstractmethod
-    def score(self, in_, out):
+    def score(self, in_, out, method):
         '''
         Output the accuracy of the classifier obtained on the
         specified input and output (labels)
@@ -50,11 +51,12 @@ class Classifier(ABC):
 
         pass
 
-    def k_fold_score(self, k=10):
+    def k_fold_score(self, k=10, scoring_method='accuracy'):
         '''
         Use stratified k fold crossvalidation on the data and
         return the mean, standard deviation, and raw accuracies
-        obtained from each fold
+        obtained from each fold. Valid scoring methods are
+        'accuracy', 'fscore', and 'both'
         '''
 
         scores = []
@@ -70,7 +72,7 @@ class Classifier(ABC):
             test_out = np.take(self.labels, test_ind)
 
             self.fit(train_in, train_out)
-            score = self.score(test_in, test_out)
+            score = self.score(test_in, test_out, scoring_method)
             scores.append(score)
 
         final_score = np.mean(scores)
@@ -98,17 +100,25 @@ class Knn(Classifier):
         self.model.fit(in_, out)
         self.fit_yet = True
 
-    def score(self, in_, out):
+    def score(self, in_, out, method):
         '''
         Using the fit knn model, return the accuracy of the
-        model on the specified input data
+        model on the specified input data. Valid scoring methods
+        are 'accuracy', 'fscore', and 'both'
         '''
 
         if not self.fit_yet:
             raise ModelNotFit('Must fit the Knn model before scoring.')
 
         else:
-            return self.model.score(in_, out)
+            if method == 'accuracy':
+                return self.model.score(in_, out)
+            elif method == 'fscore':
+                pred = self.model.predict(in_)
+                score = f_score(out, pred)
+                return score
+            elif method == 'both':
+                pass
 
     def plot_k_scores(self, max_k=10):
         '''
@@ -170,7 +180,7 @@ class NaiveBayes(Classifier):
         self.model.fit(in_, out)
         self.fit_yet = True
 
-    def score(self, in_, out):
+    def score(self, in_, out, method):
         '''
         Score the model on the provided input
         '''
@@ -179,7 +189,14 @@ class NaiveBayes(Classifier):
             raise ModelNotFit('Must fit the Naive Bayes model before scoring.')
 
         else:
-            return self.model.score(in_, out)
+            if method == 'accuracy':
+                return self.model.score(in_, out)
+            elif method == 'fscore':
+                pred = self.model.predict(in_)
+                score = f_score(out, pred)
+                return score
+            elif method == 'both':
+                pass
 
 class FFNN(Classifier):
     '''
@@ -243,10 +260,10 @@ class FFNN(Classifier):
 
         #Set verbose=0 for no output during training, 2 for one line per epoch
         #Need to adjust steps_per_epoch depending on the dataset
-        self.model.fit(in_, cat_out, epochs=20, verbose=2, steps_per_epoch=200)
+        self.model.fit(in_, cat_out, epochs=2, verbose=2, steps_per_epoch=50)
         self.fit_yet = True
 
-    def score(self, in_, out):
+    def score(self, in_, out, method):
         '''
         Score the neural network on the provided input
         '''
@@ -255,8 +272,17 @@ class FFNN(Classifier):
             raise ModelNotFit('Must train the neural network before scoring.')
 
         else:
-            cat_out = to_categorical(out, num_classes=self.num_classes)
-            return self.model.evaluate(in_, cat_out, batch_size=128)[1]
+
+            if method == 'accuracy':
+                cat_out = to_categorical(out, num_classes=self.num_classes)
+                return self.model.evaluate(in_, cat_out, batch_size=128)[1]
+            elif method == 'fscore':
+                pred = self.model.predict(in_)
+                pred = np.array([np.argmax(x) for x in pred])
+                score = f_score(out, pred)
+                return score
+            elif method == 'both':
+                pass
 
 class ModelNotFit(Exception):
     def __init__(self, message):

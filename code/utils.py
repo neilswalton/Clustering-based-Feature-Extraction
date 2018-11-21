@@ -10,7 +10,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
 from math import ceil
-from sklearn.metrics import silhouette_score as sc
+from sklearn.metrics import silhouette_score as sc, f1_score as fscore
 
 class Pca:
     '''
@@ -52,7 +52,9 @@ class Pca:
 
 
 def silhouette(data, clusters):
-    pass
+    score = sc(data, clusters)
+    return score
 
-def f_score(data, clusters):
-    pass
+def f_score(true, pred):
+    score = fscore(true, pred, average='weighted')
+    return score
