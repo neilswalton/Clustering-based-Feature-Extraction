@@ -50,9 +50,11 @@ class DataReader:
 
 		if not header_:
 			if self.datafile.contains("cov"):
-				data = pd.read_csv(self.datafile, names=cover_headers)
+				data = pd.read_csv(self.datafile, header=None, names=cover_headers)
 			if self.datafile.contains("nurse"):
-				data = pd.read_csv(self.datafile, names=nursery_headers)
+				data = pd.read_csv(self.datafile, header=None, names=nursery_headers)
+			else:
+				data = pd.read_csv(self.datafile, header=None)
 		else:
 			data = pd.read_csv(self.datafile)
 		self.headers = data.columns.values

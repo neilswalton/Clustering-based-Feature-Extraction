@@ -24,6 +24,20 @@ class FeatureExtractor(ABC):
         self.input = input
         self.labels = labels
 
+
+    def _get_clustering(self, method):
+            '''
+            Return the selected clustering method. Valid methods
+            are "kmeans" and "dbscan"
+            '''
+
+            if self.method == 'kmeans':
+                return Kmeans(self.input.T, k=2)
+            elif self.method == 'dbscan':
+                return Dbscan(self.input.T, min_points=4, e=0.5)
+            else:
+                raise CantClusterLikeThat('Invalid clustering method selected "' +self.method+ '".')
+
     @abstractmethod
     def extract_features(self):
         '''
@@ -56,15 +70,35 @@ class FeatureCluster(FeatureExtractor):
     Implementation of the feature cluster feature extractor
     '''
 
-    def __init__(self, input, labels):
+    def __init__(self, input, labels, method="dbscan"):
         super().__init__(input, labels)
+        self.method = method
+        self.clustering = super()._get_clustering(self.method)
+        self.cluster_labels = np.array([])
+
+    def weighted_combination(self, type="hard"):
+        '''
+        Dot product between weight matrix and original feature matrix
+        '''
+        nr_clusters = len(np.unique(self.cluster_labels))
+        weight_matrix = np.zeros(nr_clusters,self.input.shape[1])
+        print(weight_matrix.shape)
+        if type=="hard":
+            for i,c in enumerate(self.cluster_labels):
+                weight_matrix[c,i] = 1
+        print(weight_matrix)
+        combined_clusters = np.array([])
+        return combined_clusters
 
     def extract_features(self):
         '''
         DESCRIPTION HERE
         '''
+        features = self.input.T #Transpose so we're clustering features
+        self.cluster_labels = self.clustering.assign_clusters()
+        new_features = self.weighted_combination()
 
-        pass
+        return new_features
 
 class ClusterPCA(FeatureExtractor):
     '''
@@ -78,7 +112,7 @@ class ClusterPCA(FeatureExtractor):
 
     def _get_clustering(self):
         '''
-        Return the selected clustering method. Vald methods
+        Return the selected clustering method. Valid methods
         are "kmeans" and "dbscan"
         '''
 
@@ -148,7 +182,7 @@ if __name__ == '__main__':
     bc = BiclusterExtractor(in_, out)
     fc = FeatureCluster(in_, out)
     cpca = ClusterPCA(in_, out, method='kmeans')
-    feats = cpca.extract_features()
+    feats = fc.extract_features()
     #print (feats)
 
     p = Pca(in_, n=2)
