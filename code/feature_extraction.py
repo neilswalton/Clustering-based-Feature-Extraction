@@ -87,6 +87,7 @@ class FeatureCluster(FeatureExtractor):
             for i,c in enumerate(self.cluster_labels):
                 weight_matrix[c,i] = 1
         print(weight_matrix)
+        print(weight_matrix)
         combined_clusters = np.array([])
         return combined_clusters
 
