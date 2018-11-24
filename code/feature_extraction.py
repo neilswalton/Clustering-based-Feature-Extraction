@@ -11,8 +11,9 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
-from utils import Pca
+from utils import Pca, silhouette
 from classifiers import Knn, NaiveBayes
+from matplotlib import pyplot as plt
 
 class FeatureExtractor(ABC):
     '''
@@ -106,8 +107,10 @@ class ClusterPCA(FeatureExtractor):
     Implementation of the cluster pca feature extractor
     '''
 
-    def __init__(self, input, labels, method='kmeans'):
+    def __init__(self, input, labels, method='kmeans', num_clusters=2, feats_per_cluster=1):
         super().__init__(input, labels)
+        self.num_clusters = num_clusters
+        self.feats_per_cluster = feats_per_cluster
         self.method = method
         self.clustering = self._get_clustering()
 
@@ -118,7 +121,7 @@ class ClusterPCA(FeatureExtractor):
         '''
 
         if self.method == 'kmeans':
-            return Kmeans(self.input.T, k=2)
+            return Kmeans(self.input.T, k=self.num_clusters)
         elif self.method == 'dbscan':
             return Dbscan(self.input.T, min_points=4, e=0.5)
         else:
@@ -135,6 +138,8 @@ class ClusterPCA(FeatureExtractor):
         clusters = self.clustering.assign_clusters()
         new_features = np.array([])
 
+        sc = silhouette(features, clusters) #silhouette coefficient
+
         #For each cluster, run PCA on the columns in the cluster to reduce dimension
         for c in set(clusters):
             columns = []
@@ -142,7 +147,7 @@ class ClusterPCA(FeatureExtractor):
                 if clusters[i] == c:
                     columns.append(features[i])
             columns =  np.array(columns).T
-            p = Pca(columns, n=1)
+            p = Pca(columns, n=self.feats_per_cluster)
             extracted_features = p.get_components()
             if new_features.shape[0] == 0:
                 new_features = extracted_features
@@ -203,3 +208,13 @@ if __name__ == '__main__':
     print ('Naive Bayes score with original features: ', nb1.k_fold_score()[0])
     print ('Naive Bayes score with extracted features: ', nb2.k_fold_score()[0])
     print ('Naive Bayes score with PCA features: ', nb3.k_fold_score()[0])
+
+    #plt.figure(1)
+    plt.subplot(121, rasterized=True)
+    plt.scatter(pca_feats[:,0], pca_feats[:,1], c=out)
+    #plt.show()
+
+    #plt.figure(2)
+    plt.subplot(122)
+    plt.scatter(feats[:,0], feats[:,1], c=out)
+    plt.show()
