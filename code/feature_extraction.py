@@ -50,7 +50,8 @@ class BiclusterExtractor(FeatureExtractor):
         these vectors as the extracted features
         '''
 
-        pass
+        bc = Bicluster(self.input)
+        bc.assign_clusters(delta=0.05, n=10)
 
 class FeatureCluster(FeatureExtractor):
     '''
