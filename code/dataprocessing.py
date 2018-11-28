@@ -81,7 +81,7 @@ class DataReader:
 		for i,c in enumerate(counts):
 			if c < 10:
 				value = unique[i]
-				print(i, value)
+				#print(i, value)
 				self.features = np.asarray([row for i,row in enumerate(self.features) if self.labels[i] != value])
 				self.labels = np.asarray([l for l in self.labels if l != value])
 
@@ -126,7 +126,7 @@ class DataReader:
 
 	"""
 	Check for missing values.
-	If the number of data points with missing values is less than 10% of the dataset, 
+	If the number of data points with missing values is less than 10% of the dataset,
 	remove the rows, otherwise, remove the columns.
 	"""
 	def remove_missing_values(self):
@@ -140,11 +140,11 @@ class DataReader:
 			if "?" or "" in row:
 				datapoint_indices.append(i)
 		if len(datapoint_indices)/self.features.shape[0] < 0.1:
-			print("deleting rows")
+			#print("deleting rows")
 			self.features = np.delete(self.features, datapoint_indices, axis=0)
 			self.labels = np.delete(self.labels, datapoint_indices, axis=0)
 		else:
-			print("deleting columns")
+			#print("deleting columns")
 			self.features = np.delete(self.features, attribute_indeces, axis=1)
 
 	"""

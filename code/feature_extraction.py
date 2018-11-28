@@ -60,7 +60,7 @@ class BiclusterExtractor(FeatureExtractor):
         '''
 
         bc = Bicluster(self.input)
-        bc.assign_clusters(delta=0.05, n=10)
+        bc.assign_clusters(delta=0.10, n=10)
 
 class FeatureCluster(FeatureExtractor):
     '''
