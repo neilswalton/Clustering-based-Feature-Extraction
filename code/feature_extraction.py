@@ -60,7 +60,22 @@ class BiclusterExtractor(FeatureExtractor):
         '''
 
         bc = Bicluster(self.input)
-        bc.assign_clusters(delta=0.10, n=10)
+        delta = 0.15
+        alpha = 1.1
+        n = 4
+        clusters = bc.assign_clusters(delta, alpha, n)
+
+        #Create a binary vector where a 1 indicates
+        #the ith data point belongs to the jth cluster
+        num_rows = self.input.shape[0]
+        num_columns = n
+        binary_features = np.zeros((num_rows, num_columns))
+
+        for j, c in enumerate(clusters):
+            for i in c[0]:
+                binary_features[i][j] = 1
+
+        return binary_features
 
 class FeatureCluster(FeatureExtractor):
     '''

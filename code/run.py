@@ -19,12 +19,12 @@ layers = [4,3]
 
 #Create and run classifier
 #ffnn = FFNN(in_, out, layers)
-#nb = NaiveBayes(in_out)
-'''knn = Knn(in_, out, k=9)
+#nb = NaiveBayes(in_, out)
+knn = Knn(bc_feats, out, k=9)
 knn.plot_k_scores(20)
 final_score, stdev, scores = knn.k_fold_score(scoring_method='fscore')
 
 
 print(final_score)
 print(stdev)
-print(scores)'''
+print(scores)

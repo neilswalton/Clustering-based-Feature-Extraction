@@ -81,8 +81,10 @@ class Bicluster(Cluster):
 
     def __init__(self, data):
         super().__init__(data)
+        self.remaining_rows = np.arange(data.shape[0])
+        self.remaining_cols = np.arange(data.shape[1])
 
-    def assign_clusters(self, delta=300, n=10):
+    def assign_clusters(self, delta=0.1, alpha=1.2, n=10):
         '''
         Using biclustering, cluster the data points into
         n various biclusters and return and array of arrays
@@ -95,29 +97,141 @@ class Bicluster(Cluster):
             5) Repeat n times to create n biclusters
         '''
 
-        bicluster = self.data
+        self.alpha = alpha
+        input_data = np.copy(self.data)
+        clusters = []
+        min_val = np.min(self.data)
+        max_val = np.max(self.data)
+
+        for i in range(n):
+            print ('Finding bicluster ', i+1, ' of ',n)
+            self.remaining_rows = np.arange(self.data.shape[0])
+            self.remaining_cols = np.arange(self.data.shape[1])
+            cluster = self._get_bicluster(input_data, delta)
+            clusters.append(cluster)
+
+            #Randomize the data that has been assigned to n_clusters
+            for i in cluster[0]:
+                for j in cluster[1]:
+                    input_data[i][j] = np.random.uniform(low=min_val, high=max_val)
+
+        return clusters
+
+    def _get_bicluster(self, input, delta):
+        '''
+        Using biclustering, cluster the data points into
+        n various biclusters and return and array of arrays
+        of those resulting cluster assignments.
+        Steps:
+            1) Remove multiple rows/columns until cluster converges
+            2) Remove individual rows/columns until msr < delta
+            3) Add rows/columns back in to get maximal cluster
+            4) Randomize elements that have been assigned to cluster
+            5) Repeat n times to create n biclusters
+        '''
+
+        bicluster = input
         #bicluster = np.array([np.array([2,2,3]),np.array([4,5,6])])
         msr = self._mean_squared_residual(bicluster)
-        print (msr)
+        #print (msr)
 
-        next_cluster = self._multiple_node_deletion(bicluster, delta, alpha=1.2)
+        next_cluster = self._multiple_node_deletion(bicluster, delta, alpha=self.alpha)
 
         #Use _multiple_node_deletion until the cluster converges
         while (not np.array_equal(bicluster, next_cluster)):
             bicluster = next_cluster
-            next_cluster = self._multiple_node_deletion(bicluster, delta, alpha=1.2)
+            next_cluster = self._multiple_node_deletion(bicluster, delta, alpha=self.alpha)
 
         msr = self._mean_squared_residual(bicluster)
-        print (msr)
+        #print (msr)
 
         #Fine tune the bicluster until the threshold msr (delta) is met
         while (msr > delta):
             bicluster = self._single_node_deletion(bicluster)
             msr = self._mean_squared_residual(bicluster)
-            print (msr)
+            #print (msr)
 
-        print (bicluster)
-        print (bicluster.shape)
+        #Cheng and Church state they run the addition step only once
+        bicluster = self._node_addition(bicluster)
+
+        return (self.remaining_rows, self.remaining_cols)
+
+    def _node_addition(self, submatrix):
+        '''
+        Add rows and columns back in that do
+        not increase the MSR back to above
+        the threshold
+        '''
+
+        deleted_rows = np.setdiff1d(np.arange(self.data.shape[0]),
+                        self.remaining_rows)
+        deleted_cols = np.setdiff1d(np.arange(self.data.shape[1]),
+                        self.remaining_cols)
+        rows_to_add = []
+        cols_to_add = []
+
+        submatrix_mean = np.mean(submatrix)
+        msr = self._mean_squared_residual(submatrix)
+
+        #Means of all the original columns, but only
+        #the selected rows of the bicluster
+        column_means = {}
+        for j in range(self.data.shape[1]):
+            column_means[j] = np.mean(np.take(self.data,
+                                    self.remaining_rows, axis=0)[:,j])
+
+        #Means of the rows in the bicluster
+        row_means = {}
+        for i in range(submatrix.shape[0]):
+            row_means[i] = np.mean(submatrix[i,:])
+
+        #Keep track of columns with msr less than the overall msr
+        for j in deleted_cols:
+            temp_score = self._node_score(j, self.data[self.remaining_rows, :],
+                'column', row_means, column_means, submatrix_mean)
+            if temp_score < msr:
+                cols_to_add.append(j)
+
+        #Add the columns selected above
+        if len(cols_to_add) != 0:
+            new_cols = np.take(self.data,
+                cols_to_add, axis=1)[self.remaining_rows,:]
+            submatrix = np.append(submatrix, new_cols, axis=1)
+            self.remaining_cols = np.hstack((self.remaining_cols, cols_to_add))
+
+        #Recalculate variables and add rows
+        submatrix_mean = np.mean(submatrix)
+        msr = self._mean_squared_residual(submatrix)
+
+        #Means of the columns in the bicluster
+        column_means = {}
+        for j in range(submatrix.shape[1]):
+            column_means[j] = np.mean(submatrix[:, j])
+
+        #Means of all the original rows, but only
+        #the selected columns of the bicluster
+        row_means = {}
+        for i in range(self.data.shape[0]):
+            row_means[i] = np.mean(np.take(self.data,
+                                    self.remaining_cols, axis=1)[i,:])
+
+        #Keep track of rows with msr less than the overall msr
+        for i in deleted_rows:
+            temp_score = self._node_score(i, self.data[:,self.remaining_cols],
+                'row', row_means, column_means, submatrix_mean)
+            inverse_score = self._inverse_node_score(i, self.data[:,self.remaining_cols],
+                row_means, column_means, submatrix_mean)
+            if temp_score < msr or inverse_score < msr:
+                rows_to_add.append(i)
+
+        #Add the row selected above
+        if len(rows_to_add) != 0:
+            new_rows = np.take(self.data,
+                rows_to_add, axis=0)[:, self.remaining_cols]
+            submatrix = np.append(submatrix, new_rows, axis=0)
+            self.remaining_rows = np.hstack((self.remaining_rows, rows_to_add))
+
+        return submatrix
 
     def _single_node_deletion(self, submatrix):
         '''
@@ -157,9 +271,11 @@ class Bicluster(Cluster):
 
         if row_col == 'row':
             new_matrix = np.delete(submatrix, ind, 0)
+            self.remaining_rows = np.delete(self.remaining_rows, ind, 0)
 
         if row_col == 'column':
             new_matrix = np.delete(submatrix, ind, 1)
+            self.remaining_cols = np.delete(self.remaining_cols, ind, 0)
 
         return new_matrix
 
@@ -199,6 +315,7 @@ class Bicluster(Cluster):
 
         #Delete the rows selected above
         temp_matrix = np.delete(submatrix, rows_to_delete, 0)
+        self.remaining_rows = np.delete(self.remaining_rows, rows_to_delete, 0)
 
         #Recalculate mean and msr for the new matrix
         temp_matrix_mean = np.mean(temp_matrix)
@@ -227,6 +344,7 @@ class Bicluster(Cluster):
 
         #Delete the columns identified above
         final_matrix = np.delete(temp_matrix, cols_to_delete, 1)
+        self.remaining_cols = np.delete(self.remaining_cols, cols_to_delete, 0)
 
         return final_matrix
 
@@ -261,6 +379,26 @@ class Bicluster(Cluster):
 
         return score
 
+    def _inverse_node_score(self, ind, submatrix, row_means,
+                    column_means, submatrix_mean):
+        '''
+        Calculate the mean squared residual of the submatrix
+        for the specified row/column index. The row_or_column
+        parameter specifies whether the index refers to a row
+        or a column
+        '''
+
+        score = 0
+
+        size = submatrix.shape[1]
+        row_mean = row_means[ind]
+        for j in range(size):
+            column_mean = column_means[j]
+            residue =  row_mean - submatrix[ind,j] - column_mean + submatrix_mean
+            squared_residue = np.power(residue, 2)
+            score += (squared_residue/float(size))
+
+        return score
 
     def _mean_squared_residual(self, submatrix):
         '''
