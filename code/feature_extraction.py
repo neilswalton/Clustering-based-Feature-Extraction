@@ -11,6 +11,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from clustering import Kmeans, Bicluster, Dbscan
+from dataprocessing import DataReader
 from utils import Pca, silhouette
 from classifiers import Knn, NaiveBayes
 from matplotlib import pyplot as plt
@@ -25,19 +26,13 @@ class FeatureExtractor(ABC):
         self.input = input
         self.labels = labels
 
-
     def _get_clustering(self, method):
-            '''
-            Return the selected clustering method. Valid methods
-            are "kmeans" and "dbscan"
-            '''
+        '''
+        Return the selected clustering method. Valid methods
+        are "kmeans" and "dbscan"
+        '''
 
-            if self.method == 'kmeans':
-                return Kmeans(self.input.T, k=2)
-            elif self.method == 'dbscan':
-                return Dbscan(self.input.T, min_points=4, e=0.5)
-            else:
-                raise CantClusterLikeThat('Invalid clustering method selected "' +self.method+ '".')
+        pass
 
     @abstractmethod
     def extract_features(self):
@@ -71,25 +66,52 @@ class FeatureCluster(FeatureExtractor):
     Implementation of the feature cluster feature extractor
     '''
 
-    def __init__(self, input, labels, method="dbscan"):
+    def __init__(self, input, labels, method="kmeans", num_clusters=2, _type="hard"):
         super().__init__(input, labels)
         self.method = method
-        self.clustering = super()._get_clustering(self.method)
+        self.num_clusters = num_clusters
+        self._type = _type
+        if self._type == "soft":
+            self.method ="kmeans"
+        self.clustering = self._get_clustering(self.method)
         self.cluster_labels = np.array([])
 
-    def weighted_combination(self, type="hard"):
+    def _get_clustering(self, method):
+        '''
+        Return the selected clustering method. Valid methods
+        are "kmeans" and "dbscan"
+        '''
+
+        if self.method == 'kmeans':
+            return Kmeans(self.input.T, k=2)
+        elif self.method == 'dbscan':
+            return Dbscan(self.input.T, min_points=10, e=0.0015)
+        else:
+            raise CantClusterLikeThat('Invalid clustering method selected "' +self.method+ '".')
+
+    def weighted_combination(self):
         '''
         Dot product between weight matrix and original feature matrix
         '''
-        nr_clusters = len(np.unique(self.cluster_labels))
-        weight_matrix = np.zeros(nr_clusters,self.input.shape[1])
-        print(weight_matrix.shape)
-        if type=="hard":
+        nr_datapoints = self.input.shape[0]
+        nr_features = self.input.shape[1]
+        weight_matrix = np.zeros([self.num_clusters,nr_features])
+        combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
+        if self._type=="hard":
             for i,c in enumerate(self.cluster_labels):
                 weight_matrix[c,i] = 1
-        print(weight_matrix)
-        print(weight_matrix)
-        combined_clusters = np.array([])
+            for k, cluster in enumerate(weight_matrix):
+                to_sum = self.input[:,[i for i, weight in enumerate(cluster) if weight == 1]] #150,2
+                combined_clusters[:,k] = np.sum(to_sum, axis=1)
+        elif self._type=="soft":
+            for i,c in enumerate(self.cluster_labels):
+                for j, prob in enumerate(c):
+                    weight_matrix[i,j] = prob
+            for k, cluster_prob in enumerate(weight_matrix):
+                to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T #4,150
+                combined_clusters[:,k] = np.sum(to_sum,axis=1)
+        print(combined_clusters)
+
         return combined_clusters
 
     def extract_features(self):
@@ -97,7 +119,10 @@ class FeatureCluster(FeatureExtractor):
         DESCRIPTION HERE
         '''
         features = self.input.T #Transpose so we're clustering features
-        self.cluster_labels = self.clustering.assign_clusters()
+        if self._type =="hard":
+            self.cluster_labels = self.clustering.assign_clusters()
+        elif self._type=="soft":
+            self.cluster_labels = self.clustering.assign_fuzzy_clusters()
         new_features = self.weighted_combination()
 
         return new_features
@@ -170,6 +195,7 @@ def load_iris():
 
         temp_list = line.strip().split(',')
         features = np.array([float(x) for x in temp_list[:4]])
+        print(features)
         data_matrix.append(features)
         if temp_list[-1] == 'Iris-setosa':
             labels.append(0)
@@ -181,12 +207,13 @@ def load_iris():
     return (np.array(data_matrix), np.array(labels))
 
 if __name__ == '__main__':
-    iris = load_iris()
+    #iris = load_iris()
+    iris= DataReader("../data/iris.txt").run()
     in_ = iris[0]
     out = iris[1]
 
     bc = BiclusterExtractor(in_, out)
-    fc = FeatureCluster(in_, out)
+    fc = FeatureCluster(in_, out, _type="hard")
     cpca = ClusterPCA(in_, out, method='kmeans')
     feats = fc.extract_features()
     #print (feats)

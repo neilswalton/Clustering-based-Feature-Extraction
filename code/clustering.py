@@ -10,6 +10,8 @@
 ##########################################################
 
 from sklearn.cluster import KMeans, DBSCAN
+import skfuzzy
+from dataprocessing import DataReader
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -51,6 +53,11 @@ class Kmeans(Cluster):
 
         km = KMeans(n_clusters=self.k).fit(self.data)
         return np.array(km.predict(self.data))
+
+    def assign_fuzzy_clusters(self):
+        cntr, u, u0, d, jm, p, fpc = skfuzzy.cluster.cmeans(self.data.T,c=self.k, m=2, error=0.005, maxiter=1000, init=None)
+        u_pred, u0, d, jm, p, fpc = skfuzzy.cluster.cmeans_predict(self.data.T,cntr, m=2, error=0.005, maxiter=1000)
+        return np.array(u_pred)
 
 class Dbscan(Cluster):
     '''
@@ -111,13 +118,13 @@ def load_iris():
     return (np.array(data_matrix), np.array(labels))
 
 if __name__ == '__main__':
-    iris = load_iris()
+    iris= DataReader("../data/iris.txt").run()
     in_ = iris[0]
     out = iris[1]
 
     k = Kmeans(in_, k=3)
     d = Dbscan(in_, min_points=4, e=.5)
     b = Bicluster(in_)
-    clusts = d.assign_clusters()
+    clusts = k.assign_fuzzy_clusters()
 
     print (clusts)
