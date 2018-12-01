@@ -87,7 +87,7 @@ class FeatureCluster(FeatureExtractor):
         self.method = method
         self.num_clusters = num_clusters
         self._type = _type
-        if self._type == "soft" or self.type=="mixed":
+        if self._type == "soft" or self._type=="mixed":
             self.method ="kmeans"
         self.clustering = self._get_clustering(self.method)
         self.cluster_labels = np.array([])
@@ -151,6 +151,7 @@ class FeatureCluster(FeatureExtractor):
         nr_features = self.input.shape[1]
         hard_weight_matrix = np.zeros([self.num_clusters,nr_features])
         soft_weight_matrix = np.zeros([self.num_clusters,nr_features])     
+        combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
         for i,c in enumerate(self.cluster_labels[0]):
             hard_weight_matrix[c,i] = 1
         for i,c in enumerate(self.cluster_labels[1]):
@@ -169,6 +170,7 @@ class FeatureCluster(FeatureExtractor):
         '''
         Calls correct weighting function
         '''
+        nr_datapoints = self.input.shape[0]
         combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
         if self._type=="hard":
             combined_clusters = self.hard_combination()
@@ -284,7 +286,7 @@ if __name__ == '__main__':
     out = iris[1]
 
     bc = BiclusterExtractor(in_, out)
-    fc = FeatureCluster(in_, out, _type="hard")
+    fc = FeatureCluster(in_, out, _type="mixed")
     cpca = ClusterPCA(in_, out, method='kmeans')
     feats = fc.extract_features()
     #print (feats)

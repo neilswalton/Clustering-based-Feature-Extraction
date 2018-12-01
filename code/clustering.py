@@ -12,7 +12,7 @@
 from sklearn.cluster import KMeans, DBSCAN
 from abc import ABC, abstractmethod
 import numpy as np
-import time
+import time, skfuzzy
 
 
 class Cluster(ABC):
@@ -52,6 +52,12 @@ class Kmeans(Cluster):
 
         km = KMeans(n_clusters=self.k).fit(self.data)
         return np.array(km.predict(self.data))
+
+    def assign_fuzzy_clusters(self):
+        cntr, u, u0, d, jm, p, fpc = skfuzzy.cluster.cmeans(self.data.T, self.k, 2, error=0.005, maxiter=1000, init=None)
+
+        u_pred, u0, d, jm, p, fpc = skfuzzy.cluster.cmeans_predict(self.data.T, cntr, 2, error=0.005, maxiter=1000)
+        return u_pred
 
 class Dbscan(Cluster):
     '''
