@@ -71,7 +71,7 @@ class FeatureCluster(FeatureExtractor):
         self.method = method
         self.num_clusters = num_clusters
         self._type = _type
-        if self._type == "soft":
+        if self._type == "soft" or self.type=="mixed":
             self.method ="kmeans"
         self.clustering = self._get_clustering(self.method)
         self.cluster_labels = np.array([])
@@ -89,40 +89,95 @@ class FeatureCluster(FeatureExtractor):
         else:
             raise CantClusterLikeThat('Invalid clustering method selected "' +self.method+ '".')
 
-    def weighted_combination(self):
+
+    def hard_combination(self):
         '''
-        Dot product between weight matrix and original feature matrix
+        Dot product between hard weighted matrix and original feature matrix.
+        Hard weights consist of 0 if feature does not belong to cluster, 1 otherwise.
+        This means the new feature is a sum of all old feature values in the 
+        corresponding cluster.
         '''
         nr_datapoints = self.input.shape[0]
         nr_features = self.input.shape[1]
         weight_matrix = np.zeros([self.num_clusters,nr_features])
         combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
+
+        for i,c in enumerate(self.cluster_labels):
+            weight_matrix[c,i] = 1
+        for k, cluster in enumerate(weight_matrix):
+            to_sum = self.input[:,[i for i, weight in enumerate(cluster) if weight == 1]] #150,2
+            combined_clusters[:,k] = np.sum(to_sum, axis=1)
+
+        return combined_clusters
+
+    def soft_combination(self):
+        '''
+        Dot product between soft weighted matrix and original feature matrix.
+        Soft weights depend on the probability of a feature belonging to the cluster.
+        This means the new feature is a weighted combinations of all old feature values.
+        '''
+        nr_datapoints = self.input.shape[0]
+        nr_features = self.input.shape[1]
+        weight_matrix = np.zeros([self.num_clusters,nr_features])
+        combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
+
+        for i,c in enumerate(self.cluster_labels):
+            for j, prob in enumerate(c):
+                weight_matrix[i,j] = prob
+        for k, cluster_prob in enumerate(weight_matrix):
+            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T 
+            combined_clusters[:,k] = np.sum(to_sum,axis=1)
+
+        return combined_clusters
+
+    def mixed_combination(self):
+        nr_datapoints = self.input.shape[0]
+        nr_features = self.input.shape[1]
+        hard_weight_matrix = np.zeros([self.num_clusters,nr_features])
+        soft_weight_matrix = np.zeros([self.num_clusters,nr_features])     
+        for i,c in enumerate(self.cluster_labels[0]):
+            hard_weight_matrix[c,i] = 1
+        for i,c in enumerate(self.cluster_labels[1]):
+            for j, prob in enumerate(c):
+                soft_weight_matrix[i,j] = prob
+        hard_weight_matrix = np.multiply(hard_weight_matrix, 0.2)
+        soft_weight_matrix = np.multiply(soft_weight_matrix, 0.8)
+        weight_matrix = [soft_weight_matrix[i]+h for i,h in enumerate(hard_weight_matrix)]
+        for k, cluster_prob in enumerate(weight_matrix):
+            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T 
+            combined_clusters[:,k] = np.sum(to_sum,axis=1)
+
+        return combined_clusters
+
+    def weighted_combination(self):
+        '''
+        Calls correct weighting function
+        '''
+        combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
         if self._type=="hard":
-            for i,c in enumerate(self.cluster_labels):
-                weight_matrix[c,i] = 1
-            for k, cluster in enumerate(weight_matrix):
-                to_sum = self.input[:,[i for i, weight in enumerate(cluster) if weight == 1]] #150,2
-                combined_clusters[:,k] = np.sum(to_sum, axis=1)
+            combined_clusters = self.hard_combination()
         elif self._type=="soft":
-            for i,c in enumerate(self.cluster_labels):
-                for j, prob in enumerate(c):
-                    weight_matrix[i,j] = prob
-            for k, cluster_prob in enumerate(weight_matrix):
-                to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T #4,150
-                combined_clusters[:,k] = np.sum(to_sum,axis=1)
+            combined_clusters = self.soft_combination()
+        elif self._type=="mixed":
+            combined_clusters = self.mixed_combination()
+
         print(combined_clusters)
 
         return combined_clusters
 
     def extract_features(self):
         '''
-        DESCRIPTION HERE
+        Combine features using K-Means or DBSCAN for hard weighted clustering 
+        and Fuzzy C-Means for soft weighted clustering.
+        Perform soft, hard or mixed weighted combination of clustered features.
         '''
         features = self.input.T #Transpose so we're clustering features
         if self._type =="hard":
             self.cluster_labels = self.clustering.assign_clusters()
         elif self._type=="soft":
             self.cluster_labels = self.clustering.assign_fuzzy_clusters()
+        elif self._type=="mixed":
+            self.cluster_labels = [self.clustering.assign_clusters() , self.clustering.assign_fuzzy_clusters()]
         new_features = self.weighted_combination()
 
         return new_features
