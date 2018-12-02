@@ -18,7 +18,7 @@ hidden_size = 100#round((num_clusters + len(set(out)))/2)
 
 #Set parameters for classifiers
 layers = [hidden_size] #List of number of nodes per hidden layer
-list_of_ks = [9,10,2,19,19] #If k param needs to change between different extracted features
+list_of_ks = [10,10,10,10,10] #If k param needs to change between different extracted features
 
 #Extract the features
 cpca = ClusterPCA(in_, out, method='kmeans', num_clusters=num_clusters, feats_per_cluster=2)
@@ -33,6 +33,11 @@ fc_soft_feats = fc.extract_features()
 fc2 = FeatureCluster(in_, out, method="kmeans", num_clusters=num_clusters, _type="mixed")
 fc_mixed_feats = fc2.extract_features()
 
+#Make class labels consecutive values
+for i, o in enumerate(set(out)):
+    for j, lab in enumerate(out):
+        if lab == o:
+            out[j] = i
 #Tune k for knn
 if tune_k:
     all_knn = Knn(in_, out, k=1)
@@ -48,7 +53,6 @@ if tune_k:
     fc_mixed_knn.plot_k_scores(20)
 
 else:
-
     features = [in_, cpca_feats, bc_feats, fc_soft_feats, fc_mixed_feats]
     feature_labels = ['All', 'CPCA', 'BC', 'FC_Soft', 'FC_Mixed']
 
