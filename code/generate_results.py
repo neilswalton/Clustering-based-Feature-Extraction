@@ -10,18 +10,18 @@ import csv
 
 #Set dataset parameters
 tune_k = False
-dataset = 'covtype'
-num_clusters = 26
+dataset = 'mushroom'
+num_clusters = 6
 dr = DataReader('../data/'+dataset+'.csv')
 in_, out = dr.run()
-hidden_size = round((num_clusters + len(set(out)))/2)
+hidden_size = 100#round((num_clusters + len(set(out)))/2)
 
 #Set parameters for classifiers
 layers = [hidden_size] #List of number of nodes per hidden layer
 list_of_ks = [9,10,2,19,19] #If k param needs to change between different extracted features
 
 #Extract the features
-cpca = ClusterPCA(in_, out, method='kmeans', num_clusters=13, feats_per_cluster=2)
+cpca = ClusterPCA(in_, out, method='kmeans', num_clusters=num_clusters, feats_per_cluster=2)
 cpca_feats = cpca.extract_features()
 
 bc = BiclusterExtractor(in_, out, n=num_clusters)
@@ -67,12 +67,15 @@ else:
         nb = NaiveBayes(in_, out)
 
         knn_start = time.time()
+        print("knn")
         k_acc_mean, k_acc_std, k_accs, k_f_mean, k_f_std, k_fs = knn.k_fold_score(10, 'both')
         knn_stop = time.time()
         ffnn_start = time.time()
+        print("ffnn")
         f_acc_mean, f_acc_std, f_accs, f_f_mean, f_f_std, f_fs = ffnn.k_fold_score(10, 'both')
         ffnn_stop = time.time()
         nb_start = time.time()
+        print("nb")
         n_acc_mean, n_acc_std, n_accs, n_f_mean, n_f_std, n_fs = nb.k_fold_score(10, 'both')
         nb_stop = time.time()
 

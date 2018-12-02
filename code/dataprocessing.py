@@ -167,13 +167,16 @@ class DataReader:
 		if bool_shuffled:
 			np.random.shuffle(self.data)
 		self.split_feat_labels(self.class_column)
+		print("original data shape: ", self.features.shape)
 		self.remove_missing_values()
 		self.check_class_instances()
 		self.categorical_to_num()
 		if bool_scale:
 			self.features = preprocessing.scale(self.features)
+		print("new data shape: ", self.features.shape)
 		return (self.features, self.labels)
 
+
 if __name__ == '__main__':
-	dr = DataReader("../data/nursery.csv")
+	dr = DataReader("../data/glass.csv")
 	dr.run()
