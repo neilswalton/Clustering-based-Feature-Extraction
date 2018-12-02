@@ -287,7 +287,7 @@ class FFNN(Classifier):
         #Reset the model in between runs
         self.model = self._create_network()
         cat_out = to_categorical(out, num_classes=self.num_classes)
-        adam = Adam(lr = 0.01, beta_1 = 0.9, beta_2 = 0.999)
+        adam = Adam(lr = 0.005, beta_1 = 0.9, beta_2 = 0.999)
 
         self.model.compile(loss='categorical_crossentropy',
                       optimizer=adam,

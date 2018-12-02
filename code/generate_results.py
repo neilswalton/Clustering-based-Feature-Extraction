@@ -6,15 +6,16 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 import time
-import csv
+import csv, datetime
 
 #Set dataset parameters
 tune_k = False
 dataset = 'mushroom'
-num_clusters = 6
+num_clusters = 12
+lr = 0.005
 dr = DataReader('../data/'+dataset+'.csv')
 in_, out = dr.run()
-hidden_size = 100#round((num_clusters + len(set(out)))/2)
+hidden_size = 5#round((num_clusters + len(set(out)))/2)
 
 #Set parameters for classifiers
 layers = [hidden_size] #List of number of nodes per hidden layer
@@ -56,7 +57,7 @@ else:
     features = [in_, cpca_feats, bc_feats, fc_soft_feats, fc_mixed_feats]
     feature_labels = ['All', 'CPCA', 'BC', 'FC_Soft', 'FC_Mixed']
 
-    file_out_name = dataset + '_results.csv'
+    file_out_name = dataset + '_results_' + datetime.datetime.now().strftime("%d_%m_%Y:%H:%M") + '_' + str(hidden_size) + '_' + str(lr) + '.csv'
     file_out = open(file_out_name, 'w')
     fieldnames = ['method', 'classifier', 'score_type', 'mean', 'stdev', 'time', 'all_scores']
     writer = csv.writer(file_out)
