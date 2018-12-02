@@ -10,7 +10,7 @@ import csv
 
 #Set dataset parameters
 dataset = 'nursery'
-num_clusters = 2
+num_clusters = 4
 
 #Set parameters for classifiers
 layers = [4] #List of number of nodes per hidden layer
@@ -39,6 +39,7 @@ file_out_name = dataset + '_results.csv'
 file_out = open(file_out_name, 'w')
 fieldnames = ['method', 'classifier', 'score_type', 'mean', 'stdev', 'time', 'all_scores']
 writer = csv.writer(file_out)
+writer.writerow([num_clusters])
 writer.writerow(fieldnames)
 
 for i, feats in enumerate(features):
@@ -52,7 +53,7 @@ for i, feats in enumerate(features):
     k_acc_mean, k_acc_std, k_accs, k_f_mean, k_f_std, k_fs = knn.k_fold_score(10, 'both')
     knn_stop = time.time()
     ffnn_start = time.time()
-    #f_acc_mean, f_acc_std, f_accs, f_f_mean, f_f_std, f_fs = ffnn.k_fold_score(10, 'both')
+    f_acc_mean, f_acc_std, f_accs, f_f_mean, f_f_std, f_fs = ffnn.k_fold_score(10, 'both')
     ffnn_stop = time.time()
     nb_start = time.time()
     n_acc_mean, n_acc_std, n_accs, n_f_mean, n_f_std, n_fs = nb.k_fold_score(10, 'both')
@@ -67,10 +68,10 @@ for i, feats in enumerate(features):
     writer.writerow([method, 'knn', 'fscore', k_f_mean,
         k_f_std, knn_time, k_fs])
 
-    '''writer.writerow([method, 'ffnn', 'accuracy', f_acc_mean,
+    writer.writerow([method, 'ffnn', 'accuracy', f_acc_mean,
         f_acc_std, ffnn_time, f_accs])
     writer.writerow([method, 'ffnn', 'fscore', f_f_mean,
-        f_f_std, ffnn_time, f_fs])'''
+        f_f_std, ffnn_time, f_fs])
 
     writer.writerow([method, 'nb', 'accuracy', n_acc_mean,
         n_acc_std, nb_time, n_accs])
