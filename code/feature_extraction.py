@@ -48,7 +48,8 @@ class BiclusterExtractor(FeatureExtractor):
     Implementation of the biclustering based feature extractor
     '''
 
-    def __init__(self, input, labels):
+    def __init__(self, input, labels, n):
+        self.n = n
         super().__init__(input, labels)
 
     def extract_features(self):
@@ -62,13 +63,12 @@ class BiclusterExtractor(FeatureExtractor):
         bc = Bicluster(self.input)
         delta = 0.15
         alpha = 1.1
-        n = 4
-        clusters = bc.assign_clusters(delta, alpha, n)
+        clusters = bc.assign_clusters(delta, alpha, self.n)
 
         #Create a binary vector where a 1 indicates
         #the ith data point belongs to the jth cluster
         num_rows = self.input.shape[0]
-        num_columns = n
+        num_columns = self.n
         binary_features = np.zeros((num_rows, num_columns))
 
         for j, c in enumerate(clusters):
@@ -110,7 +110,7 @@ class FeatureCluster(FeatureExtractor):
         '''
         Dot product between hard weighted matrix and original feature matrix.
         Hard weights consist of 0 if feature does not belong to cluster, 1 otherwise.
-        This means the new feature is a sum of all old feature values in the 
+        This means the new feature is a sum of all old feature values in the
         corresponding cluster.
         '''
         nr_datapoints = self.input.shape[0]
@@ -141,7 +141,7 @@ class FeatureCluster(FeatureExtractor):
             for j, prob in enumerate(c):
                 weight_matrix[i,j] = prob
         for k, cluster_prob in enumerate(weight_matrix):
-            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T 
+            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T
             combined_clusters[:,k] = np.sum(to_sum,axis=1)
 
         return combined_clusters
@@ -150,7 +150,7 @@ class FeatureCluster(FeatureExtractor):
         nr_datapoints = self.input.shape[0]
         nr_features = self.input.shape[1]
         hard_weight_matrix = np.zeros([self.num_clusters,nr_features])
-        soft_weight_matrix = np.zeros([self.num_clusters,nr_features])     
+        soft_weight_matrix = np.zeros([self.num_clusters,nr_features])
         combined_clusters = np.zeros([nr_datapoints, self.num_clusters])
         for i,c in enumerate(self.cluster_labels[0]):
             hard_weight_matrix[c,i] = 1
@@ -161,7 +161,7 @@ class FeatureCluster(FeatureExtractor):
         soft_weight_matrix = np.multiply(soft_weight_matrix, 0.8)
         weight_matrix = [soft_weight_matrix[i]+h for i,h in enumerate(hard_weight_matrix)]
         for k, cluster_prob in enumerate(weight_matrix):
-            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T 
+            to_sum = np.asarray([np.multiply(self.input[:,i],prob) for i, prob in enumerate(cluster_prob)]).T
             combined_clusters[:,k] = np.sum(to_sum,axis=1)
 
         return combined_clusters
@@ -185,7 +185,7 @@ class FeatureCluster(FeatureExtractor):
 
     def extract_features(self):
         '''
-        Combine features using K-Means or DBSCAN for hard weighted clustering 
+        Combine features using K-Means or DBSCAN for hard weighted clustering
         and Fuzzy C-Means for soft weighted clustering.
         Perform soft, hard or mixed weighted combination of clustered features.
         '''

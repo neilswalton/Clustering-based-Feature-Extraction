@@ -59,26 +59,55 @@ class Classifier(ABC):
         'accuracy', 'fscore', and 'both'
         '''
 
-        scores = []
-        final_score = None
-        stdev = None
-        skf = StratifiedKFold(n_splits=k, shuffle=True)
-        skf.get_n_splits(self.input, self.labels)
+        if scoring_method == 'accuracy' or scoring_method == 'fscore':
+            scores = []
+            final_score = None
+            stdev = None
+            skf = StratifiedKFold(n_splits=k, shuffle=True)
+            skf.get_n_splits(self.input, self.labels)
 
-        for train_ind, test_ind in skf.split(self.input, self.labels):
-            train_in = np.take(self.input, train_ind, axis=0)
-            test_in = np.take(self.input, test_ind, axis=0)
-            train_out = np.take(self.labels, train_ind)
-            test_out = np.take(self.labels, test_ind)
+            for train_ind, test_ind in skf.split(self.input, self.labels):
+                train_in = np.take(self.input, train_ind, axis=0)
+                test_in = np.take(self.input, test_ind, axis=0)
+                train_out = np.take(self.labels, train_ind)
+                test_out = np.take(self.labels, test_ind)
 
-            self.fit(train_in, train_out)
-            score = self.score(test_in, test_out, scoring_method)
-            scores.append(score)
+                self.fit(train_in, train_out)
+                score = self.score(test_in, test_out, scoring_method)
+                scores.append(score)
 
-        final_score = np.mean(scores)
-        stdev = np.std(scores)
+            final_score = np.mean(scores)
+            stdev = np.std(scores)
 
-        return final_score, stdev, scores
+            return final_score, stdev, scores
+
+        elif scoring_method == 'both':
+            accuracies = []
+            fscores = []
+            final_accuracy = None
+            accuracy_stdev = None
+            final_fscore = None
+            fscore_stdev = None
+            skf = StratifiedKFold(n_splits=k, shuffle=True)
+            skf.get_n_splits(self.input, self.labels)
+
+            for train_ind, test_ind in skf.split(self.input, self.labels):
+                train_in = np.take(self.input, train_ind, axis=0)
+                test_in = np.take(self.input, test_ind, axis=0)
+                train_out = np.take(self.labels, train_ind)
+                test_out = np.take(self.labels, test_ind)
+
+                self.fit(train_in, train_out)
+                accuracy, fscore = self.score(test_in, test_out, scoring_method)
+                accuracies.append(accuracy)
+                fscores.append(fscore)
+
+            final_accuracy = np.mean(accuracies)
+            accuracy_stdev = np.std(accuracies)
+            final_fscore = np.mean(fscores)
+            fscore_stdev = np.std(fscores)
+
+            return final_accuracy, accuracy_stdev, accuracies, final_fscore, fscore_stdev, fscores
 
 class Knn(Classifier):
     '''
@@ -118,7 +147,10 @@ class Knn(Classifier):
                 score = f_score(out, pred)
                 return score
             elif method == 'both':
-                pass
+                pred = self.model.predict(in_)
+                fscore = f_score(out, pred)
+                accuracy = self.model.score(in_, out)
+                return accuracy, fscore
 
     def plot_k_scores(self, max_k=10):
         '''
@@ -196,7 +228,10 @@ class NaiveBayes(Classifier):
                 score = f_score(out, pred)
                 return score
             elif method == 'both':
-                pass
+                pred = self.model.predict(in_)
+                fscore = f_score(out, pred)
+                accuracy = self.model.score(in_, out)
+                return accuracy, fscore
 
 class FFNN(Classifier):
     '''
@@ -282,7 +317,13 @@ class FFNN(Classifier):
                 score = f_score(out, pred)
                 return score
             elif method == 'both':
-                pass
+                cat_out = to_categorical(out, num_classes=self.num_classes)
+                accuracy = self.model.evaluate(in_, cat_out, batch_size=128)[1]
+                pred = self.model.predict(in_)
+                pred = np.array([np.argmax(x) for x in pred])
+                fscore = f_score(out, pred)
+
+                return accuracy, fscore
 
 class ModelNotFit(Exception):
     def __init__(self, message):
