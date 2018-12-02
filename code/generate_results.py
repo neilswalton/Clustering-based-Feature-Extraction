@@ -46,7 +46,7 @@ for i, feats in enumerate(features):
     k = list_of_ks[i]
     method = feature_labels[i]
     knn = Knn(feats, out, k)
-    #ffnn = FFNN(in_, out, layers)
+    ffnn = FFNN(in_, out, layers)
     nb = NaiveBayes(in_, out)
 
     knn_start = time.time()
