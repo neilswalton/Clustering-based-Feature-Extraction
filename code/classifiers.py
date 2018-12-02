@@ -295,7 +295,7 @@ class FFNN(Classifier):
 
         #Set verbose=0 for no output during training, 2 for one line per epoch
         #Need to adjust steps_per_epoch depending on the dataset
-        self.model.fit(in_, cat_out, epochs=2, verbose=2, steps_per_epoch=50)
+        self.model.fit(in_, cat_out, epochs=10, verbose=2, steps_per_epoch=500)
         self.fit_yet = True
 
     def score(self, in_, out, method):
