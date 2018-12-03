@@ -10,9 +10,10 @@ import csv, datetime
 
 #Set dataset parameters
 tune_k = False
-dataset = 'mushroom'
-num_clusters = 8
-lr = 0.005
+dataset = 'communities_crime'
+num_clusters = 4
+pca_clusters = round(num_clusters/2)
+lr = 0.01
 dr = DataReader('../data/'+dataset+'.csv')
 in_, out = dr.run()
 hidden_size = round((num_clusters + len(set(out)))/2)
@@ -21,8 +22,17 @@ hidden_size = round((num_clusters + len(set(out)))/2)
 layers = [hidden_size] #List of number of nodes per hidden layer
 list_of_ks = [10,10,10,10,10] #If k param needs to change between different extracted features
 
+#Make class labels consecutive values
+for i, o in enumerate(set(out)):
+    for j, lab in enumerate(out):
+        if lab == o:
+            out[j] = i
+
+offset = min(out)
+out = out - (offset-1)
+
 #Extract the features
-cpca = ClusterPCA(in_, out, method='kmeans', num_clusters=num_clusters, feats_per_cluster=2)
+cpca = ClusterPCA(in_, out, method='kmeans', num_clusters=pca_clusters, feats_per_cluster=2)
 cpca_feats = cpca.extract_features()
 
 bc = BiclusterExtractor(in_, out, n=num_clusters)
@@ -34,11 +44,8 @@ fc_soft_feats = fc.extract_features()
 fc2 = FeatureCluster(in_, out, method="kmeans", num_clusters=num_clusters, _type="mixed")
 fc_mixed_feats = fc2.extract_features()
 
-#Make class labels consecutive values
-for i, o in enumerate(set(out)):
-    for j, lab in enumerate(out):
-        if lab == o:
-            out[j] = i
+print (set(out))
+print (len(set(out)))
 #Tune k for knn
 if tune_k:
     all_knn = Knn(in_, out, k=1)
