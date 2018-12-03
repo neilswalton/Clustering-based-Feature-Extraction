@@ -99,7 +99,10 @@ class DataReader:
 				encoder = preprocessing.LabelEncoder()
 				encoder.fit(self.features[:,i])
 				self.encoders.append(encoder)
+				print(encoder.transform(self.features[:,i]))
 				transformed.append(encoder.transform(self.features[:,i]))
+			else:
+				transformed.append(self.features[:,i])
 		for i, col in enumerate(transformed):
 			self.features[:,i] = col
 		#Transform labels
@@ -178,5 +181,5 @@ class DataReader:
 
 
 if __name__ == '__main__':
-	dr = DataReader("../data/glass.csv")
+	dr = DataReader("../data/communities_crime.csv")
 	dr.run()

@@ -11,11 +11,11 @@ import csv, datetime
 #Set dataset parameters
 tune_k = False
 dataset = 'mushroom'
-num_clusters = 12
+num_clusters = 8
 lr = 0.005
 dr = DataReader('../data/'+dataset+'.csv')
 in_, out = dr.run()
-hidden_size = 5#round((num_clusters + len(set(out)))/2)
+hidden_size = round((num_clusters + len(set(out)))/2)
 
 #Set parameters for classifiers
 layers = [hidden_size] #List of number of nodes per hidden layer
